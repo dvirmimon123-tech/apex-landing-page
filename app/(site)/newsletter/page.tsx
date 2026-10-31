@@ -46,7 +46,7 @@ export default function NewsletterPage() {
           ))}
         </ol>
         {/* CADENCE: the home page says "quarterly". Align both before launch. */}
-        <p className="h-card reveal mt-12 max-w-[34ch] md:mt-16">One email, every other Sunday evening. Unsubscribe any time.</p>
+        <p className="h-card reveal mt-12 max-w-[34ch] md:mt-16">One email a month. Unsubscribe any time.</p>
       </Section>
 
       <Section id="subscribe" scene="summit" label="Subscribe" labelledBy="subscribe-title">

@@ -57,7 +57,7 @@ export function MailchimpNewsletterForm() {
         </h3>
         <p className="mt-4 max-w-[46ch] text-[17px] leading-relaxed text-body">
           We sent you a confirmation email (Mailchimp may also have opened a short confirmation page in a new tab). Click the
-          button in the email to confirm your address, and the next issue of The APEX Newsletter will land in your inbox.
+          button in the email to confirm, and our latest issue will be on its way.
         </p>
       </div>
     )
