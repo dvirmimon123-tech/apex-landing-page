@@ -4,10 +4,10 @@ import { useId, useRef, useState, type FormEvent } from "react"
 
 /*
   The APEX Newsletter sign-up. Posts straight to the Mailchimp audience "Apex"
-  (JSONP, no server needed, so it works on a static export). Mailchimp runs
+  (a plain form post in a new tab, no server needed, so it works on a static export). Mailchimp runs
   double opt-in: the person confirms from their inbox before they are added.
 */
-const ENDPOINT = "https://apex.us12.list-manage.com/subscribe/post-json?u=27bb05458f18b3acc438ac243&id=cc6d95dc7d"
+const ACTION = "https://apex.us12.list-manage.com/subscribe/post?u=27bb05458f18b3acc438ac243&id=cc6d95dc7d"
 const HONEYPOT = "b_27bb05458f18b3acc438ac243_cc6d95dc7d"
 const ROLES = ["Founder", "Researcher", "Engineer", "Investor", "APEX alum", "Other"]
 export const NEWSLETTER_CONSENT =
@@ -30,56 +30,22 @@ export function MailchimpNewsletterForm() {
   }
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
     const form = e.currentTarget
     const els = form.elements as unknown as Record<string, HTMLInputElement>
-    const fname = els.FNAME.value.trim()
-    const email = els.EMAIL.value.trim()
-    if (!fname) return fail("Please enter your first name.", els.FNAME)
-    if (!email || !els.EMAIL.checkValidity()) return fail("Please enter a valid email address.", els.EMAIL)
-    if (!els.ROLE.value) return fail("Please tell us what best describes you.", els.ROLE)
-    if (!els.consent.checked) return fail("Please tick the box to agree to receive the newsletter.", els.consent)
-
-    setStatus({ kind: "sending" })
-    const cb = `apexNl${Date.now()}`
-    const params = new URLSearchParams()
-    params.append("FNAME", fname)
-    params.append("EMAIL", email)
-    params.append("COMPANY", els.COMPANY.value.trim())
-    params.append("ROLE", els.ROLE.value)
-    params.append(HONEYPOT, els[HONEYPOT].value)
-    params.append("c", cb)
-
-    const script = document.createElement("script")
-    const w = window as unknown as Record<string, unknown>
-    const cleanup = () => {
-      clearTimeout(timer)
-      delete w[cb]
-      script.remove()
+    const bad = (message: string, el: HTMLElement) => {
+      e.preventDefault()
+      fail(message, el)
     }
-    const timer = setTimeout(() => {
-      cleanup()
-      fail("Something went wrong. Please try again in a moment.")
-    }, 15000)
-    w[cb] = (res: { result?: string; msg?: string }) => {
-      cleanup()
-      if (res?.result === "success") {
-        setStatus({ kind: "ok" })
-        setTimeout(() => done.current?.focus(), 0)
-        return
-      }
-      let msg = String(res?.msg ?? "Something went wrong. Please try again.")
-        .replace(/<[^>]*>/g, "")
-        .replace(/^\d+\s*-\s*/, "")
-      if (/already subscribed/i.test(msg)) msg = "This email is already on the list. Thanks for being here."
-      fail(msg)
-    }
-    script.src = `${ENDPOINT}&${params.toString()}`
-    script.onerror = () => {
-      cleanup()
-      fail("Something went wrong. Please try again in a moment.")
-    }
-    document.body.appendChild(script)
+    if (!els.FNAME.value.trim()) return bad("Please enter your first name.", els.FNAME)
+    if (!els.EMAIL.value.trim() || !els.EMAIL.checkValidity()) return bad("Please enter a valid email address.", els.EMAIL)
+    if (!els.ROLE.value) return bad("Please tell us what best describes you.", els.ROLE)
+    if (!els.consent.checked) return bad("Please tick the box to agree to receive the newsletter.", els.consent)
+    // Valid: the browser posts the form to Mailchimp in a new tab (Mailchimp's own
+    // confirmation page, which also handles any spam check). This page shows the next step.
+    setTimeout(() => {
+      setStatus({ kind: "ok" })
+      setTimeout(() => done.current?.focus(), 0)
+    }, 50)
   }
 
   if (status.kind === "ok") {
@@ -90,21 +56,21 @@ export function MailchimpNewsletterForm() {
           Check your inbox.
         </h3>
         <p className="mt-4 max-w-[46ch] text-[17px] leading-relaxed text-body">
-          We sent you a confirmation email. Click the button inside to confirm your address, and the next issue of The APEX
-          Newsletter will land in your inbox.
+          We sent you a confirmation email (Mailchimp may also have opened a short confirmation page in a new tab). Click the
+          button in the email to confirm your address, and the next issue of The APEX Newsletter will land in your inbox.
         </p>
       </div>
     )
   }
 
-  const pending = status.kind === "sending"
+  const pending = false
   const clear = (e: FormEvent<HTMLFormElement>) => {
     ;(e.target as HTMLElement).removeAttribute("aria-invalid")
     if (status.kind === "error") setStatus({ kind: "idle" })
   }
 
   return (
-    <form onSubmit={onSubmit} onInput={clear} noValidate className="space-y-8">
+    <form action={ACTION} method="post" target="_blank" onSubmit={onSubmit} onInput={clear} noValidate className="space-y-8">
       <fieldset disabled={pending} className="min-w-0 space-y-8 disabled:opacity-80">
         <legend className="sr-only">The APEX Newsletter sign-up</legend>
         <p className="text-[15px] text-body">
